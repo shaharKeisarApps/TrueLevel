@@ -10,5 +10,16 @@ enum class SensorAccuracy {
     UNRELIABLE,
     LOW,
     MEDIUM,
-    HIGH
+    HIGH;
+    
+    /**
+     * Gets the display name for this accuracy level
+     */
+    val displayName: String
+        get() = when (this) {
+            UNRELIABLE -> "Unreliable"
+            LOW -> "Low"
+            MEDIUM -> "Medium"
+            HIGH -> "High"
+        }
 }

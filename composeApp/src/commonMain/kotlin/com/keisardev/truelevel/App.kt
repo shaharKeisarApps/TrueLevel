@@ -1,44 +1,52 @@
 package com.keisardev.truelevel
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.painterResource
+import androidx.navigation.compose.rememberNavController
+import com.keisardev.truelevel.di.AppModule
+import com.keisardev.truelevel.navigation.LevelNavigation
+import com.keisardev.truelevel.ui.theme.LevelTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-import truelevel.composeapp.generated.resources.Res
-import truelevel.composeapp.generated.resources.compose_multiplatform
 
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
-            }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
-                }
+    LevelTheme {
+        val navController = rememberNavController()
+        
+        // Initialize the app with a mock sensor manager for preview
+        LaunchedEffect(Unit) {
+            if (!AppModule.isInitialized()) {
+                AppModule.initialize(
+                    sensorManager = MockSensorManager(),
+                    settingsRepository = null
+                )
             }
         }
+        
+        LevelNavigation(
+            navController = navController,
+            viewModel = AppModule.getLevelViewModel(),
+            modifier = Modifier.fillMaxSize()
+        )
     }
+}
+
+/**
+ * Mock sensor manager for preview and testing
+ */
+private class MockSensorManager : com.keisardev.truelevel.domain.repositories.SensorManager {
+    override fun startSensorUpdates(): kotlinx.coroutines.flow.Flow<com.keisardev.truelevel.domain.models.SensorData> = 
+        kotlinx.coroutines.flow.flowOf()
+    override suspend fun stopSensorUpdates() {}
+    override suspend fun isAvailable() = true
+    override suspend fun getCurrentAccuracy() = com.keisardev.truelevel.domain.models.SensorAccuracy.HIGH
+    override suspend fun getSensorStatus() = com.keisardev.truelevel.domain.models.SensorStatus.AVAILABLE
+    override suspend fun calibrate() = com.keisardev.truelevel.domain.models.CalibrationData.default()
+    override suspend fun isGyroscopeAvailable() = true
+    override suspend fun isAccelerometerAvailable() = true
+    override suspend fun requestPermissions() = true
 }

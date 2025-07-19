@@ -18,13 +18,22 @@ import kotlinx.datetime.Clock
 /**
  * Android-specific sensor manager implementation using Android Sensor API
  */
-actual class PlatformSensorManager(
-    private val context: Context
-) : SensorManager {
+class PlatformSensorManager() : SensorManager {
     
-    private val androidSensorManager = context.getSystemService(Context.SENSOR_SERVICE) as AndroidSensorManager
-    private val accelerometer = androidSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    private val gyroscope = androidSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+    private var context: Context? = null
+    
+    constructor(context: Context) : this() {
+        this.context = context
+    }
+    
+    private val androidSensorManager: AndroidSensorManager?
+        get() = context?.getSystemService(Context.SENSOR_SERVICE) as? AndroidSensorManager
+    
+    private val accelerometer: Sensor?
+        get() = androidSensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    
+    private val gyroscope: Sensor?
+        get() = androidSensorManager?.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
     
     private var currentAccuracy = SensorAccuracy.MEDIUM
     private var isListening = false
@@ -73,7 +82,7 @@ actual class PlatformSensorManager(
         
         // Register accelerometer listener
         accelerometer?.let { sensor ->
-            androidSensorManager.registerListener(
+            androidSensorManager?.registerListener(
                 sensorEventListener,
                 sensor,
                 AndroidSensorManager.SENSOR_DELAY_GAME
@@ -82,7 +91,7 @@ actual class PlatformSensorManager(
         
         // Register gyroscope listener if available
         gyroscope?.let { sensor ->
-            androidSensorManager.registerListener(
+            androidSensorManager?.registerListener(
                 sensorEventListener,
                 sensor,
                 AndroidSensorManager.SENSOR_DELAY_GAME
@@ -92,7 +101,7 @@ actual class PlatformSensorManager(
         isListening = true
         
         awaitClose {
-            androidSensorManager.unregisterListener(sensorEventListener)
+            androidSensorManager?.unregisterListener(sensorEventListener)
             isListening = false
         }
     }

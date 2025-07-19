@@ -25,12 +25,7 @@ data class LevelMeasurement(
             timestamp: Long,
             accuracy: SensorAccuracy = SensorAccuracy.MEDIUM
         ): LevelMeasurement {
-            val maxAngle = maxOf(kotlin.math.abs(angleX), kotlin.math.abs(angleY))
-            val levelStatus = when {
-                maxAngle <= 1.0 -> LevelStatus.LEVEL
-                maxAngle <= 5.0 -> LevelStatus.CLOSE
-                else -> LevelStatus.NOT_LEVEL
-            }
+            val levelStatus = LevelStatus.fromAngles(angleX, angleY)
             val isLevel = levelStatus == LevelStatus.LEVEL
             
             return LevelMeasurement(
@@ -56,5 +51,40 @@ data class LevelMeasurement(
             timestamp = Clock.System.now().toEpochMilliseconds(),
             accuracy = accuracy
         )
+    }
+    
+    /**
+     * Gets the maximum angle from both axes
+     */
+    val maxAngle: Double
+        get() = maxOf(kotlin.math.abs(angleX), kotlin.math.abs(angleY))
+    
+    /**
+     * Gets the tilt magnitude (Pythagorean distance)
+     */
+    val tiltMagnitude: Double
+        get() = kotlin.math.sqrt(angleX * angleX + angleY * angleY)
+    
+    /**
+     * Formats the primary angle (X-axis) with 0.1-degree precision
+     */
+    fun formatPrimaryAngle(): String = AngleFormatter.formatToTenthDegree(angleX)
+    
+    /**
+     * Formats the secondary angle (Y-axis) with 0.1-degree precision
+     */
+    fun formatSecondaryAngle(): String = AngleFormatter.formatToTenthDegree(angleY)
+    
+    /**
+     * Gets formatted display information for UI
+     */
+    fun getDisplayInfo(): MeasurementDisplay = AngleFormatter.formatMeasurementDisplay(this)
+    
+    /**
+     * Checks if this measurement is significantly different from another
+     */
+    fun isDifferentFrom(other: LevelMeasurement, threshold: Double = 0.1): Boolean {
+        return kotlin.math.abs(angleX - other.angleX) > threshold ||
+               kotlin.math.abs(angleY - other.angleY) > threshold
     }
 }

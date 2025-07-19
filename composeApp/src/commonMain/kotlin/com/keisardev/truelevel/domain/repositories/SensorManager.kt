@@ -56,8 +56,3 @@ interface SensorManager {
     suspend fun requestPermissions(): Boolean
 }
 
-/**
- * Platform-specific sensor manager implementation
- * This will be implemented differently for Android and iOS
- */
-expect class PlatformSensorManager : SensorManager

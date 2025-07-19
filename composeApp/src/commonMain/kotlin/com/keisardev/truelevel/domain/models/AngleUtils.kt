@@ -73,4 +73,39 @@ object AngleUtils {
     fun maxAngle(angleX: Double, angleY: Double): Double {
         return maxOf(abs(angleX), abs(angleY))
     }
+    
+    /**
+     * Calculates the magnitude of tilt from both X and Y angles
+     */
+    fun calculateTiltMagnitude(angleX: Double, angleY: Double): Double {
+        return sqrt(angleX * angleX + angleY * angleY)
+    }
+    
+    /**
+     * Converts degrees to radians
+     */
+    fun degreesToRadians(degrees: Double): Double {
+        return degrees * PI / 180.0
+    }
+    
+    /**
+     * Converts radians to degrees
+     */
+    fun radiansToDegrees(radians: Double): Double {
+        return radians * 180.0 / PI
+    }
+    
+    /**
+     * Applies low-pass filter to a single value
+     */
+    fun lowPassFilter(current: Double, previous: Double, alpha: Double): Double {
+        return alpha * previous + (1 - alpha) * current
+    }
+    
+    /**
+     * Determines if two angles are approximately equal within tolerance
+     */
+    fun anglesEqual(angle1: Double, angle2: Double, tolerance: Double = 0.1): Boolean {
+        return abs(angle1 - angle2) <= tolerance
+    }
 }

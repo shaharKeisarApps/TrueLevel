@@ -66,4 +66,53 @@ class AngleUtilsTest {
         assertEquals(3.0, AngleUtils.maxAngle(-3.0, 2.0))
         assertEquals(5.0, AngleUtils.maxAngle(-5.0, -2.0))
     }
+    
+    @Test
+    fun testTiltMagnitudeCalculation() {
+        // Test Pythagorean theorem for tilt magnitude
+        assertEquals(5.0, AngleUtils.calculateTiltMagnitude(3.0, 4.0), 0.01)
+        assertEquals(0.0, AngleUtils.calculateTiltMagnitude(0.0, 0.0), 0.01)
+        assertEquals(7.07, AngleUtils.calculateTiltMagnitude(5.0, 5.0), 0.01)
+    }
+    
+    @Test
+    fun testDegreesToRadians() {
+        assertEquals(0.0, AngleUtils.degreesToRadians(0.0), 0.01)
+        assertEquals(kotlin.math.PI / 2, AngleUtils.degreesToRadians(90.0), 0.01)
+        assertEquals(kotlin.math.PI, AngleUtils.degreesToRadians(180.0), 0.01)
+    }
+    
+    @Test
+    fun testRadiansToDegrees() {
+        assertEquals(0.0, AngleUtils.radiansToDegrees(0.0), 0.01)
+        assertEquals(90.0, AngleUtils.radiansToDegrees(kotlin.math.PI / 2), 0.01)
+        assertEquals(180.0, AngleUtils.radiansToDegrees(kotlin.math.PI), 0.01)
+    }
+    
+    @Test
+    fun testLowPassFilter() {
+        // Test filter behavior
+        val current = 10.0
+        val previous = 0.0
+        val alpha = 0.8
+        
+        val filtered = AngleUtils.lowPassFilter(current, previous, alpha)
+        assertEquals(2.0, filtered, 0.01) // 0.8 * 0 + 0.2 * 10 = 2.0
+        
+        // Test with different alpha values
+        assertEquals(5.0, AngleUtils.lowPassFilter(current, previous, 0.5), 0.01)
+        assertEquals(1.0, AngleUtils.lowPassFilter(current, previous, 0.9), 0.01)
+    }
+    
+    @Test
+    fun testAnglesEqual() {
+        assertTrue(AngleUtils.anglesEqual(5.0, 5.05, 0.1))
+        assertTrue(AngleUtils.anglesEqual(5.0, 4.95, 0.1))
+        assertFalse(AngleUtils.anglesEqual(5.0, 5.2, 0.1))
+        assertFalse(AngleUtils.anglesEqual(5.0, 4.8, 0.1))
+        
+        // Test with custom tolerance
+        assertTrue(AngleUtils.anglesEqual(5.0, 5.5, 0.6))
+        assertFalse(AngleUtils.anglesEqual(5.0, 5.5, 0.4))
+    }
 }

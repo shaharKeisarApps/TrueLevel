@@ -17,7 +17,7 @@ import platform.Foundation.NSOperationQueue
  * iOS-specific sensor manager implementation using Core Motion
  */
 @OptIn(ExperimentalForeignApi::class)
-actual class PlatformSensorManager : SensorManager {
+class PlatformSensorManager : SensorManager {
     
     private val motionManager = CMMotionManager()
     private var currentAccuracy = SensorAccuracy.MEDIUM
@@ -44,12 +44,12 @@ actual class PlatformSensorManager : SensorManager {
                 val rotationRate = deviceMotion.rotationRate
                 
                 val sensorData = SensorData(
-                    accelerometerX = gravity.x.toFloat(),
-                    accelerometerY = gravity.y.toFloat(),
-                    accelerometerZ = gravity.z.toFloat(),
-                    gyroscopeX = rotationRate.x.toFloat(),
-                    gyroscopeY = rotationRate.y.toFloat(),
-                    gyroscopeZ = rotationRate.z.toFloat(),
+                    accelerometerX = gravity.useContents { x }.toFloat(),
+                    accelerometerY = gravity.useContents { y }.toFloat(),
+                    accelerometerZ = gravity.useContents { z }.toFloat(),
+                    gyroscopeX = rotationRate.useContents { x }.toFloat(),
+                    gyroscopeY = rotationRate.useContents { y }.toFloat(),
+                    gyroscopeZ = rotationRate.useContents { z }.toFloat(),
                     timestamp = Clock.System.now().toEpochMilliseconds(),
                     accuracy = currentAccuracy
                 )
