@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -26,6 +25,8 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            // Ensure proper export
+            freeCompilerArgs += listOf("-Xexport-kdoc")
         }
     }
     
@@ -43,11 +44,18 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
+            implementation(compose.animation)
+            // Add explicit animation-core dependency to fix undefined symbols
+//            implementation("androidx.compose.animation:animation-core:1.8.2")
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.androidx.navigation.compose)
+        }
+        // Add explicit kotlinx-datetime for iOS to ensure Clock.System is available
+        iosMain.dependencies {
+            implementation(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -86,4 +94,3 @@ android {
 dependencies {
     debugImplementation(compose.uiTooling)
 }
-

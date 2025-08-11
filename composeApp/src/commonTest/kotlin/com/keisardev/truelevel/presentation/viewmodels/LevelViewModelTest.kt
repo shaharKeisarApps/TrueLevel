@@ -318,6 +318,285 @@ class LevelViewModelTest {
         assertEquals(SensorStatus.ERROR, state.sensorStatus)
         assertNotNull(state.error)
     }
+    
+    // Hold/Freeze Functionality Tests
+    
+    @Test
+    fun `activateHold sets hold state with current measurement`() = runTest {
+        // Setup: Add a current measurement
+        val measurement = LevelMeasurement.createNow(2.5, 1.2)
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.2f, 0.1f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Act: Activate hold
+        viewModel.activateHold()
+        
+        // Assert
+        val state = viewModel.getCurrentState()
+        assertTrue(state.isHoldActive)
+        assertNotNull(state.heldMeasurement)
+        assertEquals(state.currentMeasurement, state.heldMeasurement)
+    }
+    
+    @Test
+    fun `deactivateHold clears hold state`() = runTest {
+        // Setup: Activate hold first
+        viewModel.handleIntent(LevelIntent.ActivateHold)
+        assertTrue(viewModel.getCurrentState().isHoldActive)
+        
+        // Act: Deactivate hold
+        viewModel.deactivateHold()
+        
+        // Assert
+        val state = viewModel.getCurrentState()
+        assertFalse(state.isHoldActive)
+        assertNull(state.heldMeasurement)
+    }
+    
+    @Test
+    fun `toggleHold switches hold state correctly`() = runTest {
+        // Setup: Add a current measurement
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Initial state - not held
+        assertFalse(viewModel.getCurrentState().isHoldActive)
+        
+        // Act: Toggle hold on
+        viewModel.toggleHold()
+        assertTrue(viewModel.getCurrentState().isHoldActive)
+        assertNotNull(viewModel.getCurrentState().heldMeasurement)
+        
+        // Act: Toggle hold off
+        viewModel.toggleHold()
+        assertFalse(viewModel.getCurrentState().isHoldActive)
+        assertNull(viewModel.getCurrentState().heldMeasurement)
+    }
+    
+    @Test
+    fun `canActivateHold returns true when measurement available and not held`() = runTest {
+        // Setup: Add a current measurement
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Assert: Can activate hold
+        assertTrue(viewModel.canActivateHold())
+        
+        // Act: Activate hold
+        viewModel.activateHold()
+        
+        // Assert: Cannot activate hold when already active
+        assertFalse(viewModel.canActivateHold())
+    }
+    
+    @Test
+    fun `canActivateHold returns false when no measurement available`() {
+        // No measurement setup
+        
+        // Assert: Cannot activate hold without measurement
+        assertFalse(viewModel.canActivateHold())
+    }
+    
+    @Test
+    fun `getDisplayMeasurement returns held measurement when hold active`() = runTest {
+        // Setup: Add measurements
+        val initialMeasurement = LevelMeasurement.createNow(1.0, 0.5)
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f),
+            SensorData.createNow(0.2f, 0.1f, 9.8f) // Different measurement
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Act: Activate hold
+        viewModel.activateHold()
+        val heldMeasurement = viewModel.getCurrentState().heldMeasurement
+        
+        // Assert: Display measurement should be the held one
+        assertEquals(heldMeasurement, viewModel.getDisplayMeasurement())
+        assertEquals(heldMeasurement, viewModel.getCurrentState().displayMeasurement)
+    }
+    
+    @Test
+    fun `getDisplayMeasurement returns current measurement when hold not active`() = runTest {
+        // Setup: Add a current measurement
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Assert: Display measurement should be the current one
+        val currentMeasurement = viewModel.getCurrentState().currentMeasurement
+        assertEquals(currentMeasurement, viewModel.getDisplayMeasurement())
+        assertEquals(currentMeasurement, viewModel.getCurrentState().displayMeasurement)
+    }
+    
+    @Test
+    fun `handleTapGesture activates hold after delay for single tap`() = runTest {
+        // Setup: Add a current measurement
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Act: Single tap
+        viewModel.handleTapGesture()
+        
+        // Assert: Hold not active immediately
+        assertFalse(viewModel.getCurrentState().isHoldActive)
+        
+        // Wait for hold activation delay
+        advanceTimeBy(600L) // More than holdActivationDelay (500ms)
+        
+        // Assert: Hold should be active now
+        assertTrue(viewModel.getCurrentState().isHoldActive)
+    }
+    
+    @Test
+    fun `handleTapGesture toggles hold immediately for double tap`() = runTest {
+        // Setup: Add a current measurement
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Act: Double tap (two taps within threshold)
+        viewModel.handleTapGesture()
+        advanceTimeBy(200L) // Within doubleTapThreshold (300ms)
+        viewModel.handleTapGesture()
+        
+        // Assert: Hold should be active immediately
+        assertTrue(viewModel.getCurrentState().isHoldActive)
+        
+        // Act: Double tap again to deactivate
+        viewModel.handleTapGesture()
+        advanceTimeBy(200L)
+        viewModel.handleTapGesture()
+        
+        // Assert: Hold should be inactive
+        assertFalse(viewModel.getCurrentState().isHoldActive)
+    }
+    
+    @Test
+    fun `cancelHoldActivation prevents hold activation`() = runTest {
+        // Setup: Add a current measurement
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Act: Start tap gesture then cancel
+        viewModel.handleTapGesture()
+        advanceTimeBy(200L) // Partial delay
+        viewModel.cancelHoldActivation()
+        
+        // Wait past the activation delay
+        advanceTimeBy(400L)
+        
+        // Assert: Hold should not be active
+        assertFalse(viewModel.getCurrentState().isHoldActive)
+    }
+    
+    @Test
+    fun `held measurement persists without drift during sensor updates`() = runTest {
+        // Setup: Add initial measurement
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        
+        // Act: Activate hold
+        viewModel.activateHold()
+        val heldMeasurement = viewModel.getCurrentState().heldMeasurement!!
+        
+        // Simulate new sensor data
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.5f, 0.3f, 9.8f) // Different values
+        )
+        
+        // Process new sensor data
+        advanceTimeBy(100L)
+        
+        // Assert: Held measurement should remain unchanged
+        val currentState = viewModel.getCurrentState()
+        assertTrue(currentState.isHoldActive)
+        assertEquals(heldMeasurement, currentState.heldMeasurement)
+        
+        // Current measurement should be updated, but held should remain the same
+        assertNotEquals(currentState.currentMeasurement, currentState.heldMeasurement)
+    }
+    
+    @Test
+    fun `hold state is cleared when switching measurement modes`() = runTest {
+        // Setup: Add measurement and activate hold
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        viewModel.activateHold()
+        
+        // Verify hold is active
+        assertTrue(viewModel.getCurrentState().isHoldActive)
+        
+        // Act: Switch measurement mode
+        viewModel.handleIntent(LevelIntent.SwitchMode(MeasurementMode.BUBBLE_LEVEL))
+        
+        // Assert: Hold should be cleared
+        val state = viewModel.getCurrentState()
+        assertFalse(state.isHoldActive)
+        assertNull(state.heldMeasurement)
+        assertEquals(MeasurementMode.BUBBLE_LEVEL, state.measurementMode)
+    }
+    
+    @Test
+    fun `hold state is cleared when stopping measurements`() = runTest {
+        // Setup: Add measurement and activate hold
+        mockSensorManager.sensorData = flowOf(
+            SensorData.createNow(0.1f, 0.05f, 9.8f)
+        )
+        
+        viewModel.handleIntent(LevelIntent.StartMeasurement)
+        advanceUntilIdle()
+        viewModel.activateHold()
+        
+        // Verify hold is active
+        assertTrue(viewModel.getCurrentState().isHoldActive)
+        
+        // Act: Stop measurements
+        viewModel.handleIntent(LevelIntent.StopMeasurement)
+        advanceUntilIdle()
+        
+        // Assert: Hold should be cleared
+        val state = viewModel.getCurrentState()
+        assertFalse(state.isHoldActive)
+        assertNull(state.heldMeasurement)
+        assertNull(state.currentMeasurement)
+    }
 }
 
 /**

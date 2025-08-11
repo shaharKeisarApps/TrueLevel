@@ -1,7 +1,8 @@
 package com.keisardev.truelevel.domain.models
 
-import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
+
 
 /**
  * Calibration data for sensor offset correction
@@ -17,15 +18,17 @@ data class CalibrationData(
         /**
          * Creates a default calibration with zero offsets
          */
+        @OptIn(ExperimentalTime::class)
         fun default(): CalibrationData = CalibrationData(
             offsetX = 0.0,
             offsetY = 0.0,
-            timestamp = Clock.System.now().toEpochMilliseconds()
+            timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds()
         )
         
         /**
          * Creates a calibration with current timestamp
          */
+        @OptIn(ExperimentalTime::class)
         fun create(
             offsetX: Double,
             offsetY: Double,
@@ -33,7 +36,7 @@ data class CalibrationData(
         ): CalibrationData = CalibrationData(
             offsetX = offsetX,
             offsetY = offsetY,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
+            timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
             deviceOrientation = deviceOrientation
         )
     }

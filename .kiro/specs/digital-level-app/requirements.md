@@ -13,7 +13,7 @@ TrueLevel is a professional-grade digital level/inclinometer application built w
 #### Acceptance Criteria
 
 1. WHEN the user opens the digital inclinometer mode THEN the system SHALL display real-time angle measurements with 0.1-degree precision
-2. WHEN the device orientation changes THEN the system SHALL update angle readings within 16ms for smooth 60fps performance
+2. WHEN the device orientation changes THEN the system SHALL update angle readings within 16ms for smooth 120fps performance
 3. WHEN the angle measurement is within ±1 degree of level THEN the system SHALL display green indicator for "level" status
 4. WHEN the angle measurement is between 1-5 degrees from level THEN the system SHALL display yellow indicator for "close to level" status
 5. WHEN the angle measurement exceeds 5 degrees from level THEN the system SHALL display red indicator for "not level" status

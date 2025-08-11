@@ -4,5 +4,12 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSMotionUsageDescription</key>
+	<string>This app uses motion sensors to provide level measurement functionality.</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>accelerometer</string>
+		<string>gyroscope</string>
+	</array>
 </dict>
 </plist>

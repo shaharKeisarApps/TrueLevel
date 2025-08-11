@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package com.keisardev.truelevel.domain.repositories
 
 import android.content.Context
@@ -13,7 +15,7 @@ import com.keisardev.truelevel.domain.models.SensorStatus
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.datetime.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Android-specific sensor manager implementation using Android Sensor API
@@ -62,7 +64,7 @@ class PlatformSensorManager() : SensorManager {
                         gyroscopeX = gyroscopeData?.get(0),
                         gyroscopeY = gyroscopeData?.get(1),
                         gyroscopeZ = gyroscopeData?.get(2),
-                        timestamp = Clock.System.now().toEpochMilliseconds(),
+                        timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
                         accuracy = currentAccuracy
                     )
                     trySend(sensorData)
@@ -133,7 +135,7 @@ class PlatformSensorManager() : SensorManager {
         return CalibrationData(
             offsetX = 0.0,
             offsetY = 0.0,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
+            timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
             deviceOrientation = DeviceOrientation.PORTRAIT
         )
     }

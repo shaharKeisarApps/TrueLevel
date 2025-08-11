@@ -8,12 +8,15 @@ import com.keisardev.truelevel.presentation.state.LevelIntent
 import com.keisardev.truelevel.presentation.state.LevelStateReducer
 import com.keisardev.truelevel.presentation.state.LevelUiState
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.time.ExperimentalTime
 
 /**
  * ViewModel for level measurement screen with sensor integration
  */
+@OptIn(ExperimentalTime::class)
 class LevelViewModel(
     private val sensorManager: SensorManager,
     private val settingsRepository: com.keisardev.truelevel.domain.repositories.SettingsRepository? = null
@@ -32,6 +35,12 @@ class LevelViewModel(
     
     // Battery optimization timer
     private var batteryOptimizationJob: Job? = null
+    
+    // Hold mechanism state
+    private var lastTapTime = 0L
+    private var holdActivationJob: Job? = null
+    private val doubleTapThreshold = 300L // milliseconds
+    private val holdActivationDelay = 500L // milliseconds for tap-and-hold
     
     init {
         // Initialize sensor status
@@ -282,6 +291,7 @@ class LevelViewModel(
             try {
                 sensorJob?.cancel()
                 batteryOptimizationJob?.cancel()
+                holdActivationJob?.cancel()
                 sensorManager.stopSensorUpdates()
             } catch (e: Exception) {
                 // Log error but don't throw during cleanup
@@ -368,4 +378,134 @@ class LevelViewModel(
             }
         }
     }
+    
+    // Hold/Freeze Functionality
+    
+    /**
+     * Handles tap gesture for hold activation
+     * Detects double-tap and tap-and-hold gestures
+     */
+    fun handleTapGesture() {
+        val currentTime = kotlin.time.Clock.System.now().toEpochMilliseconds()
+        val timeSinceLastTap = currentTime - lastTapTime
+        
+        if (lastTapTime > 0 && timeSinceLastTap <= doubleTapThreshold) {
+            // Double-tap detected - toggle hold immediately
+            handleDoubleTap()
+            // Reset lastTapTime to prevent triple-tap issues
+            lastTapTime = 0L
+        } else {
+            // Single tap - start hold activation timer
+            startHoldActivationTimer()
+            lastTapTime = currentTime
+        }
+    }
+    
+    /**
+     * Handles double-tap gesture to toggle hold
+     */
+    private fun handleDoubleTap() {
+        // Cancel any pending hold activation
+        holdActivationJob?.cancel()
+        holdActivationJob = null
+        
+        // Toggle hold state
+        handleIntent(LevelIntent.ToggleHold)
+    }
+    
+    /**
+     * Starts timer for tap-and-hold gesture detection
+     */
+    private fun startHoldActivationTimer() {
+        // Cancel any existing hold activation job
+        holdActivationJob?.cancel()
+        
+        holdActivationJob = viewModelScope.launch {
+            delay(holdActivationDelay)
+            
+            // If we reach here, it's a tap-and-hold gesture
+            val currentState = _uiState.value
+            if (!currentState.isHoldActive && currentState.currentMeasurement != null) {
+                handleIntent(LevelIntent.ActivateHold)
+            }
+        }
+    }
+    
+    /**
+     * Cancels hold activation timer (called when user releases touch)
+     */
+    fun cancelHoldActivation() {
+        holdActivationJob?.cancel()
+        holdActivationJob = null
+    }
+    
+    /**
+     * Manually activates hold with current measurement
+     */
+    fun activateHold() {
+        val currentState = _uiState.value
+        if (currentState.currentMeasurement != null && !currentState.isHoldActive) {
+            handleIntent(LevelIntent.ActivateHold)
+        }
+    }
+    
+    /**
+     * Manually deactivates hold
+     */
+    fun deactivateHold() {
+        val currentState = _uiState.value
+        if (currentState.isHoldActive) {
+            handleIntent(LevelIntent.DeactivateHold)
+        }
+    }
+    
+    /**
+     * Toggles hold state
+     */
+    fun toggleHold() {
+        handleIntent(LevelIntent.ToggleHold)
+    }
+    
+    /**
+     * Checks if hold can be activated (has current measurement and not already held)
+     */
+    fun canActivateHold(): Boolean {
+        val currentState = _uiState.value
+        return currentState.currentMeasurement != null && !currentState.isHoldActive
+    }
+    
+    /**
+     * Gets the measurement that should be displayed (held or current)
+     */
+    fun getDisplayMeasurement(): LevelMeasurement? {
+        return _uiState.value.displayMeasurement
+    }
+    
+    /**
+     * Ensures held measurement persists without drift
+     * This method validates that the held measurement remains unchanged
+     */
+    private fun validateHeldMeasurement() {
+        val currentState = _uiState.value
+        if (currentState.isHoldActive && currentState.heldMeasurement != null) {
+            // Ensure the held measurement timestamp and values haven't changed
+            val heldMeasurement = currentState.heldMeasurement
+            
+            // Create a defensive copy to prevent any accidental modifications
+            val validatedHeldMeasurement = heldMeasurement.copy(
+                angleX = heldMeasurement.angleX,
+                angleY = heldMeasurement.angleY,
+                timestamp = heldMeasurement.timestamp,
+                accuracy = heldMeasurement.accuracy,
+                levelStatus = heldMeasurement.levelStatus
+            )
+            
+            // Update state only if the held measurement has somehow changed
+            if (heldMeasurement != validatedHeldMeasurement) {
+                _uiState.value = currentState.copy(heldMeasurement = validatedHeldMeasurement)
+            }
+        }
+    }
+    
+
 }

@@ -1,7 +1,7 @@
 package com.keisardev.truelevel.domain.models
 
-import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 /**
  * Core measurement data model representing a level measurement
@@ -41,6 +41,7 @@ data class LevelMeasurement(
         /**
          * Creates a LevelMeasurement with calculated level status and current timestamp
          */
+        @OptIn(ExperimentalTime::class)
         fun createNow(
             angleX: Double,
             angleY: Double,
@@ -48,7 +49,7 @@ data class LevelMeasurement(
         ): LevelMeasurement = create(
             angleX = angleX,
             angleY = angleY,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
+            timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
             accuracy = accuracy
         )
     }

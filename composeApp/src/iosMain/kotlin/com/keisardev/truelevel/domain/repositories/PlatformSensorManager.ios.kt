@@ -6,17 +6,18 @@ import com.keisardev.truelevel.domain.models.SensorAccuracy
 import com.keisardev.truelevel.domain.models.SensorData
 import com.keisardev.truelevel.domain.models.SensorStatus
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.datetime.Clock
 import platform.CoreMotion.CMMotionManager
 import platform.Foundation.NSOperationQueue
+import kotlin.time.ExperimentalTime
 
 /**
  * iOS-specific sensor manager implementation using Core Motion
  */
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, ExperimentalTime::class)
 class PlatformSensorManager : SensorManager {
     
     private val motionManager = CMMotionManager()
@@ -35,7 +36,7 @@ class PlatformSensorManager : SensorManager {
             NSOperationQueue.mainQueue
         ) { motion, error ->
             if (error != null) {
-                // Handle error
+                // Handle error - could log or send error through channel
                 return@startDeviceMotionUpdatesToQueue
             }
             
@@ -50,7 +51,7 @@ class PlatformSensorManager : SensorManager {
                     gyroscopeX = rotationRate.useContents { x }.toFloat(),
                     gyroscopeY = rotationRate.useContents { y }.toFloat(),
                     gyroscopeZ = rotationRate.useContents { z }.toFloat(),
-                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                    timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
                     accuracy = currentAccuracy
                 )
                 trySend(sensorData)
@@ -92,7 +93,7 @@ class PlatformSensorManager : SensorManager {
         return CalibrationData(
             offsetX = 0.0,
             offsetY = 0.0,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
+            timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
             deviceOrientation = DeviceOrientation.PORTRAIT
         )
     }

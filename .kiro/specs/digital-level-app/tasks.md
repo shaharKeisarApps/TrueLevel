@@ -98,7 +98,7 @@
     - Write integration tests for mode switching
     - _Requirements: 5.1, 5.2, 5.5_
 
-- [ ] 7. Implement hold/freeze functionality
+- [-] 7. Implement hold/freeze functionality
   - [ ] 7.1 Create hold mechanism in ViewModel
     - Implement hold state management in LevelViewModel
     - Add gesture detection for tap-and-hold and double-tap

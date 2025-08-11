@@ -1,7 +1,7 @@
 package com.keisardev.truelevel.domain.models
 
-import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 /**
  * Raw sensor data from accelerometer and gyroscope
@@ -27,6 +27,7 @@ data class SensorData(
         /**
          * Creates SensorData with current timestamp
          */
+        @OptIn(ExperimentalTime::class)
         fun createNow(
             accelerometerX: Float,
             accelerometerY: Float,
@@ -42,7 +43,7 @@ data class SensorData(
             gyroscopeX = gyroscopeX,
             gyroscopeY = gyroscopeY,
             gyroscopeZ = gyroscopeZ,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
+            timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
             accuracy = accuracy
         )
     }
